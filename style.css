@@ -1,0 +1,15 @@
+.wrap {
+    width: 500px;
+    height: 500px;
+    border: 1px solid red;
+    padding: 10px;
+    overflow: scroll;
+
+}
+
+.inner {
+    width: 100%;
+    height: 300px;
+    background: aqua;
+    border: 1px solid red;
+}

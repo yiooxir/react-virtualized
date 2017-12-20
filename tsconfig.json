@@ -1,0 +1,45 @@
+{
+  "version": "2.2.2",
+  "compilerOptions": {
+    "target": "es2016",
+    "module": "es2015",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "skipLibCheck": true,
+    "allowJs": false,
+    "allowSyntheticDefaultImports": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "lib": [
+      "es6",
+      "es7",
+      "dom"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "actions/*": ["./src/actions/*"],
+      "base-components/*": ["./src/base-components/*"],
+      "containers/*": ["./src/containers/*"],
+      "api/*": ["./src/api/*"],
+      "utils/*": ["./src/utils/*"],
+      "components/*": ["./src/components/*"],
+      "interfaces/*": ["./src/interfaces/*"],
+      "constants/*": ["./src/constants/*"],
+      "src/*": ["./src/*"],
+      "*": ["./src/*"]
+    },
+    "jsx": "react",
+    "noUnusedLocals": true,
+    "strictNullChecks": false,
+    "removeComments": false
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.*"
+  ],
+  "compileOnSave": false
+}
