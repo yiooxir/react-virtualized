@@ -115,6 +115,7 @@ const withSize = (Enhanced): any => {
 
       return [
         <Enhanced
+          key={'main_port'}
           ref={ el => this.enhancedComponentRef = el }
           wrapRef={ (el) => this.enhancedDOMRef = el }
           options={ this.state }
@@ -123,6 +124,7 @@ const withSize = (Enhanced): any => {
           { sized }
         </Enhanced>,
         <SizeBuffer
+          key={'size-buffer'}
           sizeBufferDOMRef={ el => this.sizeBufferDOMRef = el }
           onSizes={ (sizes) => this.setState({sizes: {...this.state.sizes, ...sizes}}) }
         >
