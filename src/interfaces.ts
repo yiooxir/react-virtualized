@@ -35,3 +35,9 @@ export namespace VirtualListNs {
     wrapRef?: React.Ref<HTMLElement>
   }
 }
+
+export namespace VirtualColNs {
+  export interface Props {
+    options?: WithSizeNs.State
+  }
+}

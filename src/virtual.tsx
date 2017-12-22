@@ -1,5 +1,5 @@
 import React, {Component} from 'react'
-import {SizeBufferNs, Sizes, VirtualListNs, WithSizeNs} from "src/interfaces";
+import {SizeBufferNs, Sizes, VirtualColNs, VirtualListNs, WithSizeNs} from "src/interfaces";
 
 const BASE_WIDTH = 100
 
@@ -115,7 +115,7 @@ const withSize = (Enhanced): any => {
 
       return [
         <Enhanced
-          key={'main_port'}
+          key={ 'main_port' }
           ref={ el => this.enhancedComponentRef = el }
           wrapRef={ (el) => this.enhancedDOMRef = el }
           options={ this.state }
@@ -124,7 +124,7 @@ const withSize = (Enhanced): any => {
           { sized }
         </Enhanced>,
         <SizeBuffer
-          key={'size-buffer'}
+          key={ 'size-buffer' }
           sizeBufferDOMRef={ el => this.sizeBufferDOMRef = el }
           onSizes={ (sizes) => this.setState({sizes: {...this.state.sizes, ...sizes}}) }
         >
@@ -145,9 +145,9 @@ const withSize = (Enhanced): any => {
 @withSize
 class VirtualList extends Component<VirtualListNs.Props, VirtualListNs.State> {
   separated() {
-    const { count, sizes } = this.props.options
-    const separatedElements = Array.from({ length: count }, () => []);
-    const colTotalHeight = Array.from({ length: count }, () => 0)
+    const {count, sizes} = this.props.options
+    const separatedElements = Array.from({length: count}, () => []);
+    const colTotalHeight = Array.from({length: count}, () => 0)
 
     React.Children.forEach(this.props.children, (child: any, i: number) => {
       const index = i < count ? i : colTotalHeight.indexOf(Math.min(...colTotalHeight))
@@ -163,16 +163,34 @@ class VirtualList extends Component<VirtualListNs.Props, VirtualListNs.State> {
     const style: any = {}
     style.width = style.maxWidth = style.minWidth = `${this.props.options.width}px`
     style.overflow = 'hidden'
+    console.log(this.props.options.sizes)
 
     return (
       <div
         style={ {display: 'flex'} }
         ref={ this.props.wrapRef }>
         { Array(this.props.options.count).fill('').map((e, i) => (
-          <div className='v_col' style={ style } key={ i }>
-            {separated[i]}
-          </div>
+          <VirtualCol
+            key={ i }
+            options={ this.props.options }
+            children={ separated[i] }
+          />
         )) }
+      </div>
+    )
+  }
+}
+
+class VirtualCol extends Component<VirtualColNs.Props> {
+  render() {
+    const {options} = this.props
+    const style = {
+      width: `${options.width}px`
+    }
+
+    return (
+      <div style={ style } className='v_col'>
+        { this.props.children }
       </div>
     )
   }
