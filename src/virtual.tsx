@@ -1,5 +1,6 @@
 import React, {Component} from 'react'
 import {SizeBufferNs, Sizes, VirtualColNs, VirtualListNs, WithSizeNs} from "src/interfaces";
+import {register} from "./register";
 
 const BASE_WIDTH = 100
 
@@ -86,6 +87,7 @@ const withSize = (Enhanced): any => {
     }
 
     componentDidMount() {
+      register.scrollClient = document.querySelector(this.props.scrollSelector)
       /* Width of the parent container.
        * It's the container where target list will be displayed. */
       const clientWidth = this.sizeBufferDOMRef.clientWidth
@@ -163,7 +165,6 @@ class VirtualList extends Component<VirtualListNs.Props, VirtualListNs.State> {
     const style: any = {}
     style.width = style.maxWidth = style.minWidth = `${this.props.options.width}px`
     style.overflow = 'hidden'
-    console.log(this.props.options.sizes)
 
     return (
       <div
@@ -172,6 +173,7 @@ class VirtualList extends Component<VirtualListNs.Props, VirtualListNs.State> {
         { Array(this.props.options.count).fill('').map((e, i) => (
           <VirtualCol
             key={ i }
+            index={ i }
             options={ this.props.options }
             children={ separated[i] }
           />
@@ -182,6 +184,56 @@ class VirtualList extends Component<VirtualListNs.Props, VirtualListNs.State> {
 }
 
 class VirtualCol extends Component<VirtualColNs.Props> {
+  state = {
+    firstIndex: 0,
+    lastIndex: 0,
+    offsetTop: 0
+  }
+
+  componentDidMount() {
+    this.updateVirtualParams()
+    register.scrollClient.addEventListener('scroll', this.updateVirtualParams)
+  }
+
+  updateVirtualParams = () => {
+    let progress = 0
+    let offsetTop = 0
+    let firstIndex = 0
+    let lastIndex = 0
+    const scrollTop = register.scrollClient.scrollTop
+    const topLine = scrollTop
+    const bottomLine = scrollTop + register.scrollClient.clientHeight
+    const log = (...args) => {
+      !this.props.index && console.log(args)
+    }
+    const getSize = (child) => this.props.options.sizes[child.key]
+
+    const matchRunIn = (child, i) => {
+      if (getSize(child) + progress > topLine) {
+        firstIndex = i
+        offsetTop = progress
+        matchFn = matchRunOut
+      } else {
+        progress += getSize(child)
+      }
+    }
+    const matchRunOut = (child, i) => {
+      log('>>', i, progress, bottomLine)
+      if (progress > bottomLine) {
+        lastIndex = i
+        matchFn = () => {}
+      } else {
+        progress += getSize(child)
+      }
+    }
+
+    let matchFn = matchRunIn
+
+    React.Children.forEach(this.props.children, (child, i) => matchFn(child, i))
+
+    log(this.props.index, '>>', firstIndex, lastIndex, offsetTop)
+  }
+
   render() {
     const {options} = this.props
     const style = {

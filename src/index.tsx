@@ -22,12 +22,13 @@ const items = Array(50).fill('').map((e, i) => (
 
 const App = () => (
   <div className="App">
-    <div className="wrap">
+    <div className="wrap" id='scroll'>
       <div>hello guys</div>
       <VirtualList
         baseWidth={120}
         maxCount={6}
         minCount={4}
+        scrollSelector={'#scroll'}
       >
         {items}
       </VirtualList>

@@ -22,6 +22,7 @@ export namespace WithSizeNs {
     baseWidth: number
     minCount: number
     maxCount: number
+    scrollSelector: string
   }
 }
 
@@ -39,5 +40,6 @@ export namespace VirtualListNs {
 export namespace VirtualColNs {
   export interface Props {
     options?: WithSizeNs.State
+    index: number
   }
 }
