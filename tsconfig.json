@@ -5,8 +5,6 @@
     "module": "es2015",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "skipLibCheck": true,
-    "allowJs": false,
     "allowSyntheticDefaultImports": true,
     "preserveConstEnums": true,
     "sourceMap": true,
@@ -36,10 +34,5 @@
   },
   "include": [
     "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "**/*.spec.*"
-  ],
-  "compileOnSave": false
+  ]
 }
