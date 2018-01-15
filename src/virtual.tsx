@@ -1,8 +1,19 @@
-import React, {Component} from 'react'
-import {SizeBufferNs, Sizes, VirtualColNs, VirtualListNs, WithSizeNs} from "src/interfaces";
-import {register} from "./register";
+import React, { Component } from 'react'
+import { SizeBufferNs, Sizes, VirtualColNs, VirtualListNs, WithSizeNs } from "src/interfaces";
+import { throttle } from 'throttle-debounce'
+import { toIndex } from "./utils";
 
 const BASE_WIDTH = 100
+const VIRTUAL_THRESHOLD = 50
+
+const ElementType = (props, propName, componentName) => {
+  if (props[propName] !== undefined && props[propName] instanceof Element === false) {
+    return new Error(
+      'Invalid prop `' + propName + '` supplied to' +
+      ' `' + componentName + '`. Validation failed.'
+    );
+  }
+}
 
 /**
  * @class SizeBuffer
@@ -78,7 +89,11 @@ const withSize = (Enhanced): any => {
     private enhancedDOMRef: HTMLDivElement
     private enhancedComponentRef: VirtualList
     private sizeBufferDOMRef: HTMLDivElement
-    // private order: any = []
+    private scrollDOMRef: null
+
+    static childContextTypes = {
+      scrollDOMRef: ElementType
+    }
 
     state = {
       width: BASE_WIDTH,
@@ -86,8 +101,15 @@ const withSize = (Enhanced): any => {
       sizes: {},
     }
 
+    getChildContext() {
+      return {
+        scrollDOMRef: this.scrollDOMRef
+      };
+    }
+
     componentDidMount() {
-      register.scrollClient = document.querySelector(this.props.scrollSelector)
+      this.scrollDOMRef = document.querySelector(this.props.scrollSelector)
+
       /* Width of the parent container.
        * It's the container where target list will be displayed. */
       const clientWidth = this.sizeBufferDOMRef.clientWidth
@@ -97,10 +119,6 @@ const withSize = (Enhanced): any => {
       const width = clientWidth / count
 
       this.setState({width, count})
-    }
-
-    componentWillReceiveProps() {
-
     }
 
     render() {
@@ -116,7 +134,7 @@ const withSize = (Enhanced): any => {
       })
 
       return [
-        <Enhanced
+        this.scrollDOMRef ? <Enhanced
           key={ 'main_port' }
           ref={ el => this.enhancedComponentRef = el }
           wrapRef={ (el) => this.enhancedDOMRef = el }
@@ -124,7 +142,7 @@ const withSize = (Enhanced): any => {
           { ...this.props }
         >
           { sized }
-        </Enhanced>,
+        </Enhanced> : null,
         <SizeBuffer
           key={ 'size-buffer' }
           sizeBufferDOMRef={ el => this.sizeBufferDOMRef = el }
@@ -136,6 +154,7 @@ const withSize = (Enhanced): any => {
     }
   }
 
+
   return Wrap
 }
 
@@ -146,6 +165,10 @@ const withSize = (Enhanced): any => {
  */
 @withSize
 class VirtualList extends Component<VirtualListNs.Props, VirtualListNs.State> {
+  static contextTypes = {
+    scrollDOMRef: ElementType || null
+  }
+
   separated() {
     const {count, sizes} = this.props.options
     const separatedElements = Array.from({length: count}, () => []);
@@ -183,55 +206,75 @@ class VirtualList extends Component<VirtualListNs.Props, VirtualListNs.State> {
   }
 }
 
+
+/**
+ *
+ */
 class VirtualCol extends Component<VirtualColNs.Props> {
+  static contextTypes = {
+    scrollDOMRef: ElementType || null
+  }
+
   state = {
+    /* Index of the first element that will be rendered */
     firstIndex: 0,
+    /* Index of the last element that will be rendered */
     lastIndex: 0,
+    /* Shift from the top scroll position, before ones all the elements will not be rendered */
     offsetTop: 0
   }
 
   componentDidMount() {
     this.updateVirtualParams()
-    register.scrollClient.addEventListener('scroll', this.updateVirtualParams)
+    this.context.scrollDOMRef.addEventListener('scroll', throttle(200, () => this._updateVirtualParams()))
   }
 
   updateVirtualParams = () => {
-    let progress = 0
+    throttle(200, this._updateVirtualParams)
+  }
+
+  _updateVirtualParams() {
+    let runPosition = 0
     let offsetTop = 0
     let firstIndex = 0
-    let lastIndex = 0
-    const scrollTop = register.scrollClient.scrollTop
-    const topLine = scrollTop
-    const bottomLine = scrollTop + register.scrollClient.clientHeight
+    let lastIndex = toIndex(React.Children.count(this.props.children))
+    const scrollTop = this.context.scrollDOMRef.scrollTop
+    const topLine = scrollTop - VIRTUAL_THRESHOLD
+    const bottomLine = scrollTop + this.context.scrollDOMRef.clientHeight + VIRTUAL_THRESHOLD
+
     const log = (...args) => {
       !this.props.index && console.log(args)
     }
-    const getSize = (child) => this.props.options.sizes[child.key]
+    console.log('bottom line', bottomLine)
+    const getSize = (child) => this.props.options.sizes[child.key.substr(2)]
 
     const matchRunIn = (child, i) => {
-      if (getSize(child) + progress > topLine) {
+      if (getSize(child) + runPosition > topLine) {
         firstIndex = i
-        offsetTop = progress
+        offsetTop = runPosition
         matchFn = matchRunOut
-      } else {
-        progress += getSize(child)
       }
+      runPosition += getSize(child)
     }
+
     const matchRunOut = (child, i) => {
-      log('>>', i, progress, bottomLine)
-      if (progress > bottomLine) {
+      runPosition += getSize(child)
+      if (runPosition > bottomLine) {
         lastIndex = i
-        matchFn = () => {}
-      } else {
-        progress += getSize(child)
+        matchFn = null
       }
     }
 
     let matchFn = matchRunIn
 
-    React.Children.forEach(this.props.children, (child, i) => matchFn(child, i))
+    // React.Children.forEach(this.props.children, (child, i) => matchFn(child, i))
 
-    log(this.props.index, '>>', firstIndex, lastIndex, offsetTop)
+    React.Children.toArray(this.props.children).every((item, i) => {
+      matchFn(item, i)
+      return !!matchFn
+    })
+
+    log('>> res', firstIndex, lastIndex, offsetTop)
   }
 
   render() {
