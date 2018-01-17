@@ -43,3 +43,17 @@ export namespace VirtualColNs {
     index: number
   }
 }
+
+export namespace Utils {
+  export interface NormalizeCountArgs {
+    min?: number
+    max?: number
+  }
+
+  export const defaultNCArgs = {
+    min: 1,
+    max: 99999999
+  }
+}
+
+

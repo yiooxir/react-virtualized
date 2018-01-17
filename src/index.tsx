@@ -10,6 +10,7 @@ class Item extends Component<any> {
   render() {
     return (
       <div
+        id={this.props.name}
         onClick={() => this.setState({ name: Math.random() })}
         className='inner'
         style={{height: this.props.height}}>{this.state.name}({this.props.name / 4} )</div>
@@ -18,7 +19,7 @@ class Item extends Component<any> {
 }
 {/*<Item key={i} name={i} height={`${Math.random() * 100 + 30}px`}/>*/}
 const items = Array(50).fill('').map((e, i) => (
-  <Item key={i.toString()} name={i} height={`100px`}/>
+  <Item key={i.toString()} name={i} height={`${Math.random() * 300 + 30}px`}/>
 ))
 
 const App = () => (
@@ -26,8 +27,8 @@ const App = () => (
     <div className="wrap" id='scroll'>
       <VirtualList
         baseWidth={120}
-        maxCount={6}
-        minCount={4}
+        maxCount={1}
+        minCount={1}
         scrollSelector={'#scroll'}
       >
         {items}

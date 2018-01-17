@@ -1,10 +1,11 @@
 import React, { Component } from 'react'
-import { SizeBufferNs, Sizes, VirtualColNs, VirtualListNs, WithSizeNs } from "src/interfaces";
+import { SizeBufferNs, Sizes, VirtualColNs, VirtualListNs, WithSizeNs } from "src/interfaces"
 import { throttle } from 'throttle-debounce'
-import { toIndex } from "./utils";
+import { normalizeCount, toCount, toIndex } from "./utils"
+import { SCROLL_DIR } from "./const"
 
 const BASE_WIDTH = 100
-const VIRTUAL_THRESHOLD = 50
+const VIRTUAL_THRESHOLD = 300
 
 const ElementType = (props, propName, componentName) => {
   if (props[propName] !== undefined && props[propName] instanceof Element === false) {
@@ -114,7 +115,7 @@ const withSize = (Enhanced): any => {
        * It's the container where target list will be displayed. */
       const clientWidth = this.sizeBufferDOMRef.clientWidth
       /* Min count of container which can be placed at line in the parent box. */
-      const count = Math.floor(clientWidth / this.props.baseWidth || BASE_WIDTH)
+      const count = normalizeCount(Math.floor(clientWidth / this.props.baseWidth || BASE_WIDTH), {max: 2})
       /* Optimal container width. */
       const width = clientWidth / count
 
@@ -211,7 +212,11 @@ class VirtualList extends Component<VirtualListNs.Props, VirtualListNs.State> {
  *
  */
 class VirtualCol extends Component<VirtualColNs.Props> {
-  static contextTypes = {
+  private itemsToRender = this.props.children
+  // private scrollDirection = null
+  private lastScrollTopPos = 0
+
+  public static contextTypes = {
     scrollDOMRef: ElementType || null
   }
 
@@ -225,30 +230,64 @@ class VirtualCol extends Component<VirtualColNs.Props> {
   }
 
   componentDidMount() {
-    this.updateVirtualParams()
-    this.context.scrollDOMRef.addEventListener('scroll', throttle(200, () => this._updateVirtualParams()))
+    this.updateVirtualParams(this.props, this.context)
+    this.context.scrollDOMRef.addEventListener(
+      'scroll',
+      throttle(200, this.updateVirtualParams.bind(this, this.props, this.context))
+    )
   }
 
-  updateVirtualParams = () => {
-    throttle(200, this._updateVirtualParams)
+  componentWillReceiveProps(newProps) {
+    this.updateVirtualParams(newProps, this.context)
   }
 
-  _updateVirtualParams() {
+  updateScrollPos(newScrollPos): SCROLL_DIR {
+    switch (true) {
+      case this.lastScrollTopPos > newScrollPos:
+        this.lastScrollTopPos = newScrollPos
+        return SCROLL_DIR.TOP
+
+      case this.lastScrollTopPos < newScrollPos:
+        this.lastScrollTopPos = newScrollPos
+        return SCROLL_DIR.BOTTOM
+
+      default:
+        return SCROLL_DIR.NONE
+    }
+  }
+
+  updateVirtualParams = (props, context) => {
+    const dir = this.updateScrollPos(context.scrollDOMRef.scrollTop)
+    this._updateVirtualParams(props, context, dir)
+  }
+
+  _updateVirtualParams(props, context, scrollDirection) {
+    // console.warn('update VP')
+    const childrenCount = React.Children.count(props.children)
+    const arrChildren = React.Children.toArray(props.children)
+    const scrollTop = context.scrollDOMRef.scrollTop
+    const topLine = scrollTop - VIRTUAL_THRESHOLD
+    const bottomLine = scrollTop + context.scrollDOMRef.clientHeight + VIRTUAL_THRESHOLD
+
+    if (
+      this.state.lastIndex === toIndex(childrenCount) &&
+      scrollDirection === SCROLL_DIR.BOTTOM
+    ) {
+      return
+    }
+
     let runPosition = 0
     let offsetTop = 0
     let firstIndex = 0
-    let lastIndex = toIndex(React.Children.count(this.props.children))
-    const scrollTop = this.context.scrollDOMRef.scrollTop
-    const topLine = scrollTop - VIRTUAL_THRESHOLD
-    const bottomLine = scrollTop + this.context.scrollDOMRef.clientHeight + VIRTUAL_THRESHOLD
+    let lastIndex = toIndex(childrenCount)
 
-    const log = (...args) => {
-      !this.props.index && console.log(args)
-    }
-    console.log('bottom line', bottomLine)
-    const getSize = (child) => this.props.options.sizes[child.key.substr(2)]
+    // const log = (...args) => {
+    //   !props.index && console.log(args)
+    // }
+    // console.log('bottom line', bottomLine)
+    const getSize = (child): number => props.options.sizes[child.key.substr(2)]
 
-    const matchRunIn = (child, i) => {
+    const matchRunIn = (child, i: number): void => {
       if (getSize(child) + runPosition > topLine) {
         firstIndex = i
         offsetTop = runPosition
@@ -257,7 +296,7 @@ class VirtualCol extends Component<VirtualColNs.Props> {
       runPosition += getSize(child)
     }
 
-    const matchRunOut = (child, i) => {
+    const matchRunOut = (child, i: number): void => {
       runPosition += getSize(child)
       if (runPosition > bottomLine) {
         lastIndex = i
@@ -269,23 +308,34 @@ class VirtualCol extends Component<VirtualColNs.Props> {
 
     // React.Children.forEach(this.props.children, (child, i) => matchFn(child, i))
 
-    React.Children.toArray(this.props.children).every((item, i) => {
+    arrChildren.every((item, i) => {
       matchFn(item, i)
       return !!matchFn
     })
 
-    log('>> res', firstIndex, lastIndex, offsetTop)
+
+    if (lastIndex === this.state.lastIndex && firstIndex === this.state.firstIndex) return
+    this.itemsToRender = arrChildren.slice(firstIndex, toCount(lastIndex))
+
+    this.setState({
+      offsetTop,
+      firstIndex,
+      lastIndex
+    })
+    // log('>> res', firstIndex, lastIndex, offsetTop)
   }
 
   render() {
     const {options} = this.props
+
     const style = {
-      width: `${options.width}px`
+      width: `${options.width}px`,
+      transform: `translate(0, ${this.state.offsetTop}px)`
     }
 
     return (
       <div style={ style } className='v_col'>
-        { this.props.children }
+        { this.itemsToRender }
       </div>
     )
   }
