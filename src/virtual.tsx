@@ -5,7 +5,7 @@ import { normalizeCount, toCount, toIndex } from "./utils"
 import { SCROLL_DIR } from "./const"
 
 const BASE_WIDTH = 100
-const VIRTUAL_THRESHOLD = 300
+const VIRTUAL_THRESHOLD = 100
 
 const ElementType = (props, propName, componentName) => {
   if (props[propName] !== undefined && props[propName] instanceof Element === false) {
@@ -115,7 +115,7 @@ const withSize = (Enhanced): any => {
        * It's the container where target list will be displayed. */
       const clientWidth = this.sizeBufferDOMRef.clientWidth
       /* Min count of container which can be placed at line in the parent box. */
-      const count = normalizeCount(Math.floor(clientWidth / this.props.baseWidth || BASE_WIDTH), {max: 2})
+      const count = normalizeCount(Math.floor(clientWidth / this.props.baseWidth || BASE_WIDTH), {max: 3})
       /* Optimal container width. */
       const width = clientWidth / count
 
@@ -273,6 +273,8 @@ class VirtualCol extends Component<VirtualColNs.Props> {
       this.state.lastIndex === toIndex(childrenCount) &&
       scrollDirection === SCROLL_DIR.BOTTOM
     ) {
+      // this.setState({ offsetTop: this.state.offsetTop })
+      console.log('prevent to render ', props.index)
       return
     }
 
@@ -327,7 +329,7 @@ class VirtualCol extends Component<VirtualColNs.Props> {
 
   render() {
     const {options} = this.props
-
+    console.log('render index >>', this.props.index)
     const style = {
       width: `${options.width}px`,
       transform: `translate(0, ${this.state.offsetTop}px)`

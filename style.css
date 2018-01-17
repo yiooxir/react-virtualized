@@ -13,3 +13,7 @@
     background: aqua;
     border: 1px solid red;
 }
+
+.v_col {
+    align-self: flex-start;
+}
