@@ -1,6 +1,6 @@
 import { Utils } from "./interfaces";
-import defaultNCArgs = Utils.defaultNCArgs;
 import NormalizeCountArgs = Utils.NormalizeCountArgs;
+import { defaultNCArgs } from "./const";
 
 function toIndex(count) {
   return count ? count - 1 : 0
@@ -17,7 +17,7 @@ function normalizeCount(count, options: NormalizeCountArgs = defaultNCArgs) {
     case count < options.min:
       return options.min
     default:
-      count
+      return count
   }
 }
 

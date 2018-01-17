@@ -19,9 +19,7 @@ class Item extends Component<any> {
   }
 }
 
-{/*<Item key={i} name={i} height={`${Math.random() * 100 + 30}px`}/>*/
-}
-const items = Array(40).fill('').map((e, i) => (
+const items = Array(5).fill('').map((e, i) => (
   <Item key={ i.toString() } name={ i } height={ `${Math.random() * 300 + 30}px` }/>
 ))
 
@@ -30,7 +28,7 @@ const App = () => (
     <div className="wrap" id='scroll'>
       <VirtualList
         baseWidth={ 120 }
-        maxCount={ 1 }
+        maxCount={ 3 }
         minCount={ 1 }
         scrollSelector={ '#scroll' }
       >

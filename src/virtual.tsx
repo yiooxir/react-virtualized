@@ -5,7 +5,7 @@ import { normalizeCount, toCount, toIndex } from "./utils"
 import { SCROLL_DIR } from "./const"
 
 const BASE_WIDTH = 100
-const VIRTUAL_THRESHOLD = 100
+const VIRTUAL_THRESHOLD = 400
 
 const ElementType = (props, propName, componentName) => {
   if (props[propName] !== undefined && props[propName] instanceof Element === false) {
@@ -115,7 +115,11 @@ const withSize = (Enhanced): any => {
        * It's the container where target list will be displayed. */
       const clientWidth = this.sizeBufferDOMRef.clientWidth
       /* Min count of container which can be placed at line in the parent box. */
-      const count = normalizeCount(Math.floor(clientWidth / this.props.baseWidth || BASE_WIDTH), {max: 3})
+      const count = normalizeCount(Math.floor(clientWidth / this.props.baseWidth || BASE_WIDTH), {
+        max: this.props.maxCount,
+        min: this.props.minCount
+
+      })
       /* Optimal container width. */
       const width = clientWidth / count
 
