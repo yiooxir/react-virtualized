@@ -16,6 +16,16 @@ const ElementType = (props, propName, componentName) => {
   }
 }
 
+const BooleanType = (props, propName, componentName) => {
+  if (props[propName] !== undefined && typeof  props[propName] !== 'boolean') {
+    return new Error(
+      'Invalid prop `' + propName + '` supplied to' +
+      ' `' + componentName + '`. Validation failed.'
+    );
+  }
+}
+
+
 /**
  * @class SizeBuffer
  *
@@ -93,7 +103,8 @@ const withSize = (Enhanced): any => {
     private scrollDOMRef: null
 
     static childContextTypes = {
-      scrollDOMRef: ElementType
+      scrollDOMRef: ElementType,
+      virtual: BooleanType
     }
 
     state = {
@@ -104,7 +115,8 @@ const withSize = (Enhanced): any => {
 
     getChildContext() {
       return {
-        scrollDOMRef: this.scrollDOMRef
+        scrollDOMRef: this.scrollDOMRef,
+        virtual: this.props.virtual
       };
     }
 
@@ -220,7 +232,8 @@ class VirtualCol extends Component<VirtualColNs.Props> {
   private lastScrollTopPos = 0
 
   public static contextTypes = {
-    scrollDOMRef: ElementType || null
+    scrollDOMRef: ElementType || null,
+    virtual: BooleanType
   }
 
   state = {
@@ -260,6 +273,9 @@ class VirtualCol extends Component<VirtualColNs.Props> {
   }
 
   updateVirtualParams = (props, context) => {
+    /* Prevent calculate virtual list if no needed */
+    if (!context.virtual) return
+
     const dir = this.updateScrollPos(context.scrollDOMRef.scrollTop)
     this._updateVirtualParams(props, context, dir)
   }

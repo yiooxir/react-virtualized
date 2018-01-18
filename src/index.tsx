@@ -19,7 +19,7 @@ class Item extends Component<any> {
   }
 }
 
-const items = Array(20).fill('').map((e, i) => (
+const items = Array(50).fill('').map((e, i) => (
   <Item key={ i.toString() } name={ i } height={ `${Math.random() * 300 + 30}px` }/>
 ))
 
@@ -27,6 +27,7 @@ const App = () => (
   <div className="App">
     <div className="wrap" id='scroll'>
       <VirtualList
+        virtual={ true }
         baseWidth={ 120 }
         maxCount={ 2 }
         minCount={ 1 }

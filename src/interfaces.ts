@@ -19,6 +19,7 @@ export namespace WithSizeNs {
   }
 
   export interface Props {
+    virtual: boolean
     baseWidth: number
     minCount: number
     maxCount: number
