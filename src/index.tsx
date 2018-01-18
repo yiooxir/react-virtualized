@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import ReactDOM from 'react-dom'
-import { VirtualList } from "./virtual"
+import { VirtualList } from "./virtual-list"
 
 class Item extends Component<any> {
   state = {
