@@ -217,7 +217,6 @@ class VirtualList extends Component<VirtualListNs.Props, VirtualListNs.State> {
  */
 class VirtualCol extends Component<VirtualColNs.Props> {
   private itemsToRender = this.props.children
-  // private scrollDirection = null
   private lastScrollTopPos = 0
 
   public static contextTypes = {
@@ -266,7 +265,6 @@ class VirtualCol extends Component<VirtualColNs.Props> {
   }
 
   _updateVirtualParams(props, context, scrollDirection) {
-    // console.warn('update VP')
     const childrenCount = React.Children.count(props.children)
     const arrChildren = React.Children.toArray(props.children)
     const scrollTop = context.scrollDOMRef.scrollTop
@@ -277,8 +275,6 @@ class VirtualCol extends Component<VirtualColNs.Props> {
       this.state.lastIndex === toIndex(childrenCount) &&
       scrollDirection === SCROLL_DIR.BOTTOM
     ) {
-      // this.setState({ offsetTop: this.state.offsetTop })
-      console.log('prevent to render ', props.index)
       return
     }
 
@@ -287,10 +283,6 @@ class VirtualCol extends Component<VirtualColNs.Props> {
     let firstIndex = 0
     let lastIndex = toIndex(childrenCount)
 
-    // const log = (...args) => {
-    //   !props.index && console.log(args)
-    // }
-    // console.log('bottom line', bottomLine)
     const getSize = (child): number => props.options.sizes[child.key.substr(2)]
 
     const matchRunIn = (child, i: number): void => {
@@ -312,8 +304,6 @@ class VirtualCol extends Component<VirtualColNs.Props> {
 
     let matchFn = matchRunIn
 
-    // React.Children.forEach(this.props.children, (child, i) => matchFn(child, i))
-
     arrChildren.every((item, i) => {
       matchFn(item, i)
       return !!matchFn
@@ -328,12 +318,11 @@ class VirtualCol extends Component<VirtualColNs.Props> {
       firstIndex,
       lastIndex
     })
-    // log('>> res', firstIndex, lastIndex, offsetTop)
   }
 
   render() {
     const {options} = this.props
-    console.log('render index >>', this.props.index)
+
     const style = {
       width: `${options.width}px`,
       transform: `translate(0, ${this.state.offsetTop}px)`

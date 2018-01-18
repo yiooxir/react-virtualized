@@ -13,13 +13,13 @@ class Item extends Component<any> {
       <div
         id={ this.props.name }
         onClick={ () => this.setState({name: Math.random(), height: `${Math.random() * 300 + 30}px`}) }
-        className='inner'
+        className='test-element inner'
         style={ {height: this.state.height} }>{ this.state.name }({ this.props.name / 4 } )</div>
     )
   }
 }
 
-const items = Array(5).fill('').map((e, i) => (
+const items = Array(20).fill('').map((e, i) => (
   <Item key={ i.toString() } name={ i } height={ `${Math.random() * 300 + 30}px` }/>
 ))
 
@@ -28,7 +28,7 @@ const App = () => (
     <div className="wrap" id='scroll'>
       <VirtualList
         baseWidth={ 120 }
-        maxCount={ 3 }
+        maxCount={ 2 }
         minCount={ 1 }
         scrollSelector={ '#scroll' }
       >
