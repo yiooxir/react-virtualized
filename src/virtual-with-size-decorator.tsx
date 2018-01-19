@@ -5,6 +5,7 @@ import { PropTypes } from "./prop-types";
 import { BASE_WIDTH } from "./const";
 import { SizeBuffer } from "./virtual-size-buffer";
 import { VirtualList } from "./virtual-list";
+import { VIRTUAL_THRESHOLD } from "./const";
 
 /**
  * @decorator withSize
@@ -27,7 +28,9 @@ const withSize = (Enhanced): any => {
 
     static childContextTypes = {
       scrollDOMRef: PropTypes.HTMLElement,
-      virtual: PropTypes.Boolean
+      virtual: PropTypes.Boolean,
+      getTopVirtualLevel: () => null,
+      getBottomVirtualLevel: () => null
     }
 
     state = {
@@ -39,8 +42,26 @@ const withSize = (Enhanced): any => {
     getChildContext() {
       return {
         scrollDOMRef: this.scrollDOMRef,
-        virtual: this.props.virtual
+        virtual: this.props.virtual,
+        getTopVirtualLevel: this.getTopVirtualLevel,
+        getBottomVirtualLevel: this.getBottomVirtualLevel
       };
+    }
+
+    getTopVirtualLevel() {
+      if (!this.scrollDOMRef) {
+        console.warn(`#getTopVirtualLevel: scrollDOMRef is undefined`)
+        return
+      }
+      const ref: any = this.scrollDOMRef
+      return ref.scrollTop - VIRTUAL_THRESHOLD
+
+    }
+
+    getBottomVirtualLevel() {
+      const ref: any = this.scrollDOMRef
+      console.log('bottom, TOP LEVEL', this.getTopVirtualLevel(), ref.clientHeight)
+      return this.getTopVirtualLevel() + ref.clientHeight + VIRTUAL_THRESHOLD
     }
 
     componentDidMount() {
@@ -62,35 +83,38 @@ const withSize = (Enhanced): any => {
     }
 
     render() {
+      console.log('vs dec')
       /* List of the Elements (children) that have been sized. */
       const sized = []
       /* List of the Elements (children) that have not been sized yet. */
       const unsized = []
 
       /* Split children by two array: @sized & @unsized */
+      console.time('vsb')
       React.Children.forEach(this.props.children, (e: any) => {
         if (!e.key) return
         e.key in this.state.sizes ? sized.push(e) : unsized.push(e)
       })
-
+      console.timeEnd('vsb')
+      console.log('vs dec >>', unsized)
       return [
         this.scrollDOMRef ? <Enhanced
-            key={ 'main_port' }
+          key={ 'main_port' }
           ref={ el => this.enhancedComponentRef = el }
-      wrapRef={ (el) => this.enhancedDOMRef = el }
-      options={ this.state }
-      { ...this.props }
-    >
-      { sized }
-      </Enhanced> : null,
-      <SizeBuffer
-      key={ 'size-buffer' }
-      sizeBufferDOMRef={ el => this.sizeBufferDOMRef = el }
-      onSizes={ (sizes) => this.setState({sizes: {...this.state.sizes, ...sizes}}) }
-    >
-      { unsized }
-      </SizeBuffer>
-    ]
+          wrapRef={ (el) => this.enhancedDOMRef = el }
+          options={ this.state }
+          { ...this.props }
+        >
+          { sized }
+        </Enhanced> : null,
+        <SizeBuffer
+          key={ 'size-buffer' }
+          sizeBufferDOMRef={ el => this.sizeBufferDOMRef = el }
+          onSizes={ (sizes) => this.setState({sizes: {...this.state.sizes, ...sizes}}) }
+        >
+          { unsized }
+        </SizeBuffer>
+      ]
     }
   }
 

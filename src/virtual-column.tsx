@@ -16,7 +16,9 @@ class VirtualCol extends Component<VirtualColNs.Props> {
 
   public static contextTypes = {
     scrollDOMRef: PropTypes.HTMLElement || null,
-    virtual: PropTypes.Boolean
+    virtual: PropTypes.Boolean,
+    getTopVirtualLevel: () => null,
+    getBottomVirtualLevel: () => null
   }
 
   state = {
@@ -30,10 +32,12 @@ class VirtualCol extends Component<VirtualColNs.Props> {
 
   componentDidMount() {
     this.updateVirtualParams(this.props, this.context)
+    const update = () => this.updateVirtualParams(this.props, this.context)
     this.context.scrollDOMRef.addEventListener(
       'scroll',
-      throttle(200, this.updateVirtualParams.bind(this, this.props, this.context))
+      throttle(200, update)
     )
+    console.log('>>>>', this.context)
   }
 
   componentWillReceiveProps(newProps) {
@@ -65,10 +69,13 @@ class VirtualCol extends Component<VirtualColNs.Props> {
 
   _updateVirtualParams(props, context, scrollDirection) {
     const childrenCount = React.Children.count(props.children)
+    console.warn(`col ${props.index} children count ${childrenCount}`)
     const arrChildren = React.Children.toArray(props.children)
     const scrollTop = context.scrollDOMRef.scrollTop
     const topLine = scrollTop - VIRTUAL_THRESHOLD
     const bottomLine = scrollTop + context.scrollDOMRef.clientHeight + VIRTUAL_THRESHOLD
+    console.log('TOP LINE >>>>', topLine, context.getTopVirtualLevel())
+    console.log('BOTTOM LINE >>>>', bottomLine, scrollTop, context.scrollDOMRef.clientHeight, context.getBottomVirtualLevel())
 
     if (
       this.state.lastIndex === toIndex(childrenCount) &&
@@ -122,6 +129,9 @@ class VirtualCol extends Component<VirtualColNs.Props> {
   render() {
     const {options} = this.props
 
+    if (this.props.index === 0) console.log('-----------------------------')
+    console.log(`В ${this.props.index + 1} колонке:`, React.Children.count(this.itemsToRender), `Всего children`, React.Children.count(this.props.children))
+    console.log(`firstIndex: ${this.state.firstIndex}, lastIndex: ${this.state.lastIndex}`)
     const style = {
       width: `${options.width}px`,
       transform: `translate(0, ${this.state.offsetTop}px)`

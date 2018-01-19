@@ -14,30 +14,58 @@ class Item extends Component<any> {
         id={ this.props.name }
         onClick={ () => this.setState({name: Math.random(), height: `${Math.random() * 300 + 30}px`}) }
         className='test-element inner'
-        style={ {height: this.state.height} }>{ this.state.name }({ this.props.name / 4 } )</div>
+        style={ {height: this.state.height} }>
+        name - { this.state.name }({ this.props.name / 4 } )
+      </div>
     )
   }
 }
 
-const items = Array(50).fill('').map((e, i) => (
-  <Item key={ i.toString() } name={ i } height={ `${Math.random() * 300 + 30}px` }/>
-))
+const MainItem = () => {
+  return <div key={ 'ert' }>main item</div>
+}
 
-const App = () => (
-  <div className="App">
-    <div className="wrap" id='scroll'>
-      <VirtualList
-        virtual={ true }
-        baseWidth={ 120 }
-        maxCount={ 2 }
-        minCount={ 1 }
-        scrollSelector={ '#scroll' }
-      >
-        { items }
-      </VirtualList>
-    </div>
-  </div>
-);
+let index = 0
+
+const generateItem = (i) => {
+  index = i
+  return <Item key={ i.toString() } name={ i } height={ `${Math.random() * 300 + 30}px` }/>
+}
+
+const items = Array(100).fill('').map((e, i) => generateItem(i))
+
+class App extends Component {
+  state = {
+    items: items
+  }
+
+  addItem = () => {
+    this.setState({
+      items: [generateItem(index + 999), ...this.state.items]
+    })
+  }
+
+  render() {
+    const items = [MainItem(), ...this.state.items]
+    return (
+      <div className="App">
+        <button onClick={ this.addItem }>add item</button>
+        <div className="wrap" id='scroll'>
+          <VirtualList
+            virtual={ true }
+            baseWidth={ 120 }
+            maxCount={ 2 }
+            minCount={ 1 }
+            scrollSelector={ '#scroll' }
+          >
+            { items }
+          </VirtualList>
+        </div>
+      </div>
+    )
+  }
+
+}
 
 ReactDOM.render(<App/>, document.getElementById('root'));
 
