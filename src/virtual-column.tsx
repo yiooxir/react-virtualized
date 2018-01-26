@@ -18,7 +18,8 @@ class VirtualCol extends Component<VirtualColNs.Props> {
     scrollDOMRef: PropTypes.HTMLElement || null,
     virtual: PropTypes.Boolean,
     getTopVirtualLevel: () => null,
-    getBottomVirtualLevel: () => null
+    getBottomVirtualLevel: () => null,
+    getIndex: () => null,
   }
 
   state = {
@@ -74,8 +75,8 @@ class VirtualCol extends Component<VirtualColNs.Props> {
     const scrollTop = context.scrollDOMRef.scrollTop
     const topLine = scrollTop - VIRTUAL_THRESHOLD
     const bottomLine = scrollTop + context.scrollDOMRef.clientHeight + VIRTUAL_THRESHOLD
-    console.log('TOP LINE >>>>', topLine, context.getTopVirtualLevel())
-    console.log('BOTTOM LINE >>>>', bottomLine, scrollTop, context.scrollDOMRef.clientHeight, context.getBottomVirtualLevel())
+    // console.log('TOP LINE >>>>', topLine, context.getTopVirtualLevel())
+    // console.log('BOTTOM LINE >>>>', bottomLine, context.getBottomVirtualLevel())
 
     if (
       this.state.lastIndex === toIndex(childrenCount) &&
@@ -87,6 +88,8 @@ class VirtualCol extends Component<VirtualColNs.Props> {
     let runPosition = 0
     let offsetTop = 0
     let firstIndex = 0
+    let firstVisible
+    let lastVisible
     let lastIndex = toIndex(childrenCount)
 
     const getSize = (child): number => props.options.sizes[child.key.substr(2)]
@@ -95,6 +98,7 @@ class VirtualCol extends Component<VirtualColNs.Props> {
       if (getSize(child) + runPosition > topLine) {
         firstIndex = i
         offsetTop = runPosition
+        firstVisible = context.getIndex(child)
         matchFn = matchRunOut
       }
       runPosition += getSize(child)
@@ -104,6 +108,7 @@ class VirtualCol extends Component<VirtualColNs.Props> {
       runPosition += getSize(child)
       if (runPosition > bottomLine) {
         lastIndex = i
+        lastVisible = context.getIndex(child)
         matchFn = null
       }
     }
@@ -119,6 +124,7 @@ class VirtualCol extends Component<VirtualColNs.Props> {
     if (lastIndex === this.state.lastIndex && firstIndex === this.state.firstIndex) return
     this.itemsToRender = arrChildren.slice(firstIndex, toCount(lastIndex))
 
+    console.log('--->', firstVisible, lastVisible)
     this.setState({
       offsetTop,
       firstIndex,
@@ -129,9 +135,9 @@ class VirtualCol extends Component<VirtualColNs.Props> {
   render() {
     const {options} = this.props
 
-    if (this.props.index === 0) console.log('-----------------------------')
-    console.log(`В ${this.props.index + 1} колонке:`, React.Children.count(this.itemsToRender), `Всего children`, React.Children.count(this.props.children))
-    console.log(`firstIndex: ${this.state.firstIndex}, lastIndex: ${this.state.lastIndex}`)
+    // if (this.props.index === 0) console.log('-----------------------------')
+    // console.log(`В ${this.props.index + 1} колонке:`, React.Children.count(this.itemsToRender), `Всего children`, React.Children.count(this.props.children))
+    // console.log(`firstIndex: ${this.state.firstIndex}, lastIndex: ${this.state.lastIndex}`)
     const style = {
       width: `${options.width}px`,
       transform: `translate(0, ${this.state.offsetTop}px)`

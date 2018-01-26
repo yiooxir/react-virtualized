@@ -16,6 +16,8 @@ export namespace WithSizeNs {
     sizes: Sizes
     width: Width
     count: number
+    firstVirtualIndex: number,
+    lastVirtualIndex: number
   }
 
   export interface Props {

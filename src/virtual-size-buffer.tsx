@@ -8,9 +8,13 @@ import { SizeBufferNs, Sizes } from "./interfaces"
  * Takes children, get children sizes (height) and
  * return it in the callback.
  */
-class SizeBuffer extends Component<SizeBufferNs.Props> {
+class SizeBuffer extends Component<any> {
   private ref: HTMLDivElement
   private sizes: Sizes = {}
+
+  static defaultProps = {
+    onSizes: () => {}
+  }
 
   componentDidMount() {
     this.getSizes()
@@ -36,24 +40,19 @@ class SizeBuffer extends Component<SizeBufferNs.Props> {
   }
 
   getSizes() {
-    console.time('ws')
     Array.from(this.ref.children).forEach((item: HTMLElement, i: number) => {
       this.sizes[this.getItemKeyByIndex(i)] = item.offsetHeight
     })
-
-
     !!React.Children.count(this.props.children) && this.props.onSizes(this.sizes)
-    console.timeEnd('ws')
+
   }
 
   render() {
-    console.log('ws bu', this.props.children)
     return (
       <div
         style={ {width: '100%'} }
         ref={ el => {
           this.ref = el;
-          this.props.sizeBufferDOMRef(el)
         } }
       >
         { this.props.children }

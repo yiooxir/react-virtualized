@@ -21,8 +21,29 @@ function normalizeCount(count, options: NormalizeCountArgs = defaultNCArgs) {
   }
 }
 
+function pick(object: Object, keys: Array<number | string>): Object {
+  const res = {}
+
+  for(let key of keys) {
+    if (key in object) res[key] = object[key]
+  }
+
+  return res
+}
+
+function sumByKey(objects: Array<Object>, key: string): number {
+  return objects.reduce((sum, next) => next[key] + sum, 0)
+}
+
+function sliceRange<T>(arr: Array<T>, start: number, stop: number): Array<T> {
+  return arr.slice(start, stop - start)
+}
+
 export {
+  pick,
   toIndex,
   toCount,
+  sumByKey,
+  sliceRange,
   normalizeCount
 }

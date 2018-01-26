@@ -32,8 +32,10 @@ const generateItem = (i) => {
   return <Item key={ i.toString() } name={ i } height={ `${Math.random() * 300 + 30}px` }/>
 }
 
-const items = Array(100).fill('').map((e, i) => generateItem(i))
-
+// console.time('start')
+const items = Array(5).fill('').map((e, i) => generateItem(i))
+// console.timeEnd('start')
+// console.time('render')
 class App extends Component {
   state = {
     items: items
