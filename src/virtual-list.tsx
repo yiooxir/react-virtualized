@@ -1,6 +1,6 @@
 import React, { Component, ReactChild } from "react";
 import { SizeBuffer } from "./virtual-size-buffer";
-import { normalizeCount, sliceRange } from "./utils";
+import { isDef, normalizeCount, sliceRange } from "./utils";
 import { BASE_WIDTH } from "./const";
 //import { withSize } from "./virtual-with-size-decorator";
 // import { VirtualListNs } from "./interfaces";
@@ -20,14 +20,21 @@ interface Cache {
   hash: string
 }
 
+const initMetaObject = {
+  height: null,
+  address: null,
+  offsetTop: null,
+  hash: null
+}
+
 class VirtualList extends Component<any, any> {
   private scrollDOMRef: HTMLDivElement
   private sizerDOMRef
   private children: Array<any> = []
-  private childrenCount: number
   private metaMap: { [key: string]: Cache } = {}
   private startIndex = 0
   private stopIndex = 10
+  private maxIndex = this.stopIndex
   private colCount
   private colWidth
   private prevColWidth
@@ -36,6 +43,8 @@ class VirtualList extends Component<any, any> {
   private stableHash
   private scrollDirection
   private scrollTop
+  private topLayoutPos
+  private bottomLayoutPos
   private indexes
   private pending = true
 
@@ -88,11 +97,11 @@ class VirtualList extends Component<any, any> {
   }
 
   toMetaMap(nodes: Array<ReactChild>): Array<Cache> {
-    return nodes.reduce((res, node) => {
-      const mm = this.getCache(node)
-      mm && res.push(mm)
-      return res
-    }, [])
+    const res = []
+    for(let node of nodes) {
+      node.key in this.metaMap && res.push({[node.key]: this.metaMap[node.key]})
+    }
+    return res
   }
 
   updateColParams(): void {
@@ -113,64 +122,87 @@ class VirtualList extends Component<any, any> {
 
     this.pending = false
 
-    if (this.colCount != count) {
-      this.colCount = count
-      this.recalcCacheAddresses(0, this.stopIndex, true)
+    if (!Object.keys(this.metaMap).length) {
+      this.updateRenderTree()
       return
     }
 
-    if (this.prevColWidth != this.colWidth) {
-      this.recalcCacheHeights(0, this.stopIndex)
+    console.log('updateColParams start slicing')
+    const mmSlice = this.toMetaMap(sliceRange(this.children, 0, this.maxIndex))
+
+    if (this.colCount != count) {
+      this.colCount = count
+      // this.recalcCacheAddresses(mmSlice, true)
+      // return
     }
+
+    if (this.prevColWidth != this.colWidth) {
+      // this.recalcCacheHeights(mmSlice)
+    }
+
+    this.updateRenderTree()
   }
 
-  recalcCacheAddresses(startIndex, stopIndex, drop = false) {
+  recalcCacheAddresses(metaMapSlice, drop = false) {
     console.log('recalcCacheAddresses with drop', drop)
     // recalc positions from start
     // recalc sizes to index from current last index to render
     // call UMR
 
-    const slice = this.toMetaMap(sliceRange(this.children, startIndex, stopIndex))
-    console.log('> recalced', slice.length)
-    slice.reduce((res: Array<number>, mm) => {
+    // const slice = this.toMetaMap(sliceRange(this.children, startIndex, stopIndex))
+    // console.log('> recalced', slice.length)
+    metaMapSlice.reduce((res: Array<number>, mm) => {
       console.log(1, mm)
-      if (!drop && 'address' in mm) return res
+      if (!drop && mm.address !== null) return res
 
-      const minIndex = Math.min(...res)
+      const minIndex = res.indexOf(Math.min(...res))
       res[minIndex] += mm.height
       mm.address = minIndex
       return res
     }, new Array(this.colCount).fill(0))
 
-    this.recalcCacheHeights(startIndex, stopIndex)
+    this.recalcCacheHeights(metaMapSlice)
   }
 
-  recalcCacheHeights(startIndex, stopIndex) {
+  recalcCacheHeights(metaMapSlice) {
+    console.log('recalcCacheHeights')
     if (this.prevColWidth !== this.colWidth) {
       console.log('recalcCacheHeights')
+      const factor = this.colWidth / this.prevColWidth
+        metaMapSlice.forEach(mm => mm.height = mm.height * factor)
     }
 
-    this.recalcCacheOffsets(startIndex, stopIndex)
+    this.recalcCacheOffsets()
   }
 
-  recalcCacheOffsets(startIndex, stopIndex) {
-    console.log('recalcCacheOffsets')
-    // todo учесть распределение по колонкам
-    const c = this.metaMap
-    Object.keys(c).reduce((res, next) => {
-      c[next].offsetTop = res[c[next].pos] || 0
-      res[c[next].pos] = c[next].height
+  recalcCacheOffsets() {
+    console.log('recalcCacheOffsets', this.metaMap)
+    Object.values(this.metaMap).reduce((res, mm) => {
+      mm.offsetTop = res[mm.address] + mm.height
+      res[mm.address] += mm.height
       return res
-    }, {})
-
+    }, new Array(this.colCount).fill(0))
+  //   console.log('recalcCacheOffsets')
+  //   // todo учесть распределение по колонкам
+  //   const c = this.metaMap
+  //   Object.keys(c).reduce((res, next) => {
+  //     c[next].offsetTop = res[c[next].pos] || 0
+  //     res[c[next].pos] = c[next].height
+  //     return res
+  //   }, {})
+  //
     this.updateRenderTree()
   }
 
   updateSizesCb = (sizes) => {
     console.log('updateSizesCb', sizes)
-    Object.assign(this.metaMap, sizes)
-    for(let key in sizes) this.metaMap[key] = sizes[key]
-    this.recalcCacheAddresses(this.startIndex, this.stopIndex)
+
+    for(let key in sizes) {
+      const mm = key in this.metaMap ? this.metaMap[key] : { ...initMetaObject }
+      mm.height = sizes[key]
+      this.metaMap[key] = mm
+    }
+    this.recalcCacheAddresses(this.toMetaMap(sliceRange(this.children, this.startIndex, this.stopIndex)))
   }
 
   shouldGetMore(cacheSlice) {
@@ -197,70 +229,73 @@ class VirtualList extends Component<any, any> {
   }
 
   updateRenderTree() {
+    console.log('updateRenderTree')
     const unaddressed = []
-    const uncached = []
-    const cached = []
+    const unsized = []
+    const stable = []
     const topInvisibleIndices = []
     const bottomInvisibleIndices = []
     const colCount = this.colCount
-    const topLayoutPos = 0
-    const bottomLayoutPos = 0
+    const topLayoutPos = this.topLayoutPos
+    const bottomLayoutPos = this.bottomLayoutPos
 
     const slice = this.children.slice(this.startIndex, this.stopIndex)
 
     for (let node of slice) {
       const k = node.key
+
       if (!(k in this.metaMap)) {
-        uncached.push(node);
+        unsized.push(node);
         continue;
       }
 
       const ch = this.metaMap[k]
 
-      if (ch.height === undefined) {
-        uncached.push(node);
+      if (!isDef(ch.height)) {
+        unsized.push(node);
         continue;
       }
-      if (ch.address === undefined) {
+
+      if (!isDef(ch.address)) {
         unaddressed.push(node);
         continue;
       }
-      if (ch.hash !== this.stableHash) {
-        uncached.push(node)
-      }
+      // if (ch.hash !== this.stableHash) {
+      //   unsized.push(node)
+      // }
 
-      cached.push(cached)
+      stable.push(node)
     }
 
     // Reduce Indices Range
-    this.renderTree = cached.reduce((res, node) => {
+    this.renderTree = stable.reduce((res, node) => {
       const ch = this.getCache(node)
       // Add index for removing list if it is invisible
 
-      if ((ch.offsetTop + ch.height) > topLayoutPos) {
+      if ((ch.offsetTop + ch.height) < topLayoutPos) {
         topInvisibleIndices.push(this.getIndex(node.key));
         return res;
       }
 
-      if ((ch.offsetTop < bottomLayoutPos)) {
+      if ((ch.offsetTop > bottomLayoutPos)) {
         bottomInvisibleIndices.push(this.getIndex(node.key));
         return res;
       }
 
       res[ch.address].push(node)
       return res
-    }, new Array(colCount).fill([]))
+    }, Array.from({length: colCount}, () => []))
 
     // проверка на полное заполнение виртуального лейаута
 
 
-    this.unsized = uncached
-    console.log(111, uncached)
+    this.unsized = unsized
     // this.shouldGetMore(stable)
     this.forceUpdate()
   }
 
   render() {
+    console.log('render')
     // const separated = this.separated()
     // const style: any = {}
     // style.width = style.maxWidth = style.minWidth = `${this.props.options.width}px`

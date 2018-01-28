@@ -39,8 +39,13 @@ function sliceRange<T>(arr: Array<T>, start: number, stop: number): Array<T> {
   return arr.slice(start, stop - start)
 }
 
+function isDef(value: number): boolean {
+  return typeof value === 'number' && value >= 0
+}
+
 export {
   pick,
+  isDef,
   toIndex,
   toCount,
   sumByKey,

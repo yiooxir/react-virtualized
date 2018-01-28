@@ -44,10 +44,10 @@ class SizeBuffer extends Component<any> {
       this.sizes[this.getItemKeyByIndex(i)] = item.offsetHeight
     })
     !!React.Children.count(this.props.children) && this.props.onSizes(this.sizes)
-
   }
 
   render() {
+    console.log('USB')
     return (
       <div
         style={ {width: '100%'} }
