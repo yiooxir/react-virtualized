@@ -33,7 +33,7 @@ const generateItem = (i) => {
 }
 
 // console.time('start')
-const items = Array(20).fill('').map((e, i) => generateItem(i))
+const items = Array(30).fill('').map((e, i) => generateItem(i))
 // console.timeEnd('start')
 // console.time('render')
 class App extends Component {
@@ -60,6 +60,7 @@ class App extends Component {
             maxCount={ 2 }
             minCount={ 1 }
             scrollSelector={ '#scroll' }
+            virtualThreshold={150}
           >
             { items }
           </VirtualList>

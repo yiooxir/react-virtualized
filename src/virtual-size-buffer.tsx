@@ -47,10 +47,10 @@ class SizeBuffer extends Component<any> {
   }
 
   render() {
-    console.log('USB')
+    console.log('USB', this.props.children)
     return (
       <div
-        style={ {width: '100%'} }
+        style={ {width: '100%', visibility: 'hidden'} }
         ref={ el => {
           this.ref = el;
         } }

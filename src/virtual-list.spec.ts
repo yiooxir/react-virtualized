@@ -90,6 +90,8 @@ describe('recalcMetaOffsets', () => {
   })
 
   it('should set new offsets', function () {
+    inst.children = [{key: 1}, {key: 2}, {key: 3}, {key: 4}]
+    inst.reindex()
     inst.metaMap = {
       1: {height: 5, address: 0, offsetTop: 10},
       2: {height: 10, address: 1, offsetTop: 10},

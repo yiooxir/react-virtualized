@@ -1,12 +1,12 @@
 import React, { Component, ReactChild } from "react";
 import { SizeBuffer } from "./virtual-size-buffer";
 import { getLast, isDef, normalizeCount, sliceRange } from "./utils";
-import { BASE_WIDTH, SCROLL_DIR } from "./const";
+import { BASE_WIDTH, SCROLL_DIR, VIRTUAL_THRESHOLD } from "./const";
 import { throttle } from 'throttle-debounce'
 //import { withSize } from "./virtual-with-size-decorator";
 // import { VirtualListNs } from "./interfaces";
 // import { VirtualCol } from "./virtual-column";
-const BATCH_COUNT = 500
+const BATCH_COUNT = 10
 /**
  * @class VirtualList
  *
@@ -61,14 +61,16 @@ class VirtualList extends Component<any, any> {
       console.warn('Scroll Box is not detected')
     }
 
-    this.scrollDOMRef.addEventListener('scroll',  throttle(200, this.updateRenderTree))
-    this.children = Array.from((this.props.children as any))
+    this.scrollDOMRef.addEventListener('scroll',  throttle(10, this.updateRenderTree))
+    this.children = Array.from(this.props.children) //Array.from((this.props.children as any))
     this.reindex()
     this.updateColParams()
   }
 
+  // todo компонент не получает свойства, когда внутренний изменяется через стейт
   componentWillReceiveProps(nextProps) {
-    this.children = Array.from(nextProps.children)
+    console.log('componentWillReceiveProps')
+    this.children = Array.from(this.props.children)
     this.reindex()
     this.updateColParams()
   }
@@ -103,7 +105,7 @@ class VirtualList extends Component<any, any> {
   }
 
   getVLParams = () => {
-    const threshold = 50
+    const threshold = this.props.virtualThreshold || VIRTUAL_THRESHOLD
     const top = this.scrollDOMRef.scrollTop - threshold
     const bottom = this.scrollDOMRef.scrollTop + this.scrollDOMRef.clientHeight + threshold
     const direction = this.scrollDOMRef.scrollTop > this.lastScrollPos ? SCROLL_DIR.BOTTOM : SCROLL_DIR.TOP
@@ -119,6 +121,7 @@ class VirtualList extends Component<any, any> {
     return res
   }
 
+  // todo при старте приложения отрисовывается одна колонка. потом идет пересчет
   updateColParams(): void {
     this.pending = true
     const clientWidth = this.sizerDOMRef.ref.clientWidth
@@ -161,7 +164,8 @@ class VirtualList extends Component<any, any> {
 
   // todo если первый из списка не имеет позиции то встает в 0
   recalcMetaAddresses(metaMapSlice, drop = false) {
-    console.count('recalcCacheAddresses with drop')
+    console.count('recalcCacheAddresses with drop', drop)
+    // debugger
 
     if (!this.colCount) {
       console.warn('#recalcMetaAddresses Error: Column count is undefined.')
@@ -192,7 +196,6 @@ class VirtualList extends Component<any, any> {
 
   recalcMetaOffsets() {
     console.count('recalcMetaOffsets')
-    console.log('metaMap', this.indexes)
     Array.from(this.indexes.keys()).reduce((res, key) => {
       const mm =  this.metaMap[key]
       if (!mm) return res
@@ -202,10 +205,12 @@ class VirtualList extends Component<any, any> {
       return res
     }, new Array(this.colCount).fill(0))
 
+    console.log('recalcMetaOffsets', this.metaMap)
     this.updateRenderTree()
   }
 
   updateSizesCb = (sizes, a) => {
+    console.warn('updateSizesCb')
     for(let key in sizes) {
       const mm = key in this.metaMap ? this.metaMap[key] : { ...initMetaObject }
       mm.height = sizes[key]
@@ -217,6 +222,7 @@ class VirtualList extends Component<any, any> {
   // todo можно отслеживать виртуальный край по врапперу всех колонок, следовательно оптимизировать процесс пересчетов
   updateRenderTree = () => {
     console.count('updateRenderTree')
+    console.log(this.metaMap)
     setTimeout(() => {
       console.count('updateRenderTreeAsync')
       // if (this.unstable) return
@@ -229,6 +235,7 @@ class VirtualList extends Component<any, any> {
       const colCount = this.colCount
       const layoutParams = this.getVLParams()
 
+      console.warn('indeces', this.startIndex, this.stopIndex)
       const slice = this.children.slice(this.startIndex, this.stopIndex)
 
       for (let node of slice) {
@@ -262,7 +269,6 @@ class VirtualList extends Component<any, any> {
       // Reduce Indices Range
       this.renderTree = stable.reduce((res, node) => {
         const mm = this.getMeta(node)
-        console.log('22',node.key, mm)
         // Add index for removing list if it is invisible
 
         if ((mm.offsetTop + mm.height) < layoutParams.top) {
@@ -346,7 +352,6 @@ class VirtualList extends Component<any, any> {
   }
 
   render() {
-    console.log(this.metaMap, this.renderTree)
     // const separated = this.separated()
     const style: any = {}
     style.width = style.maxWidth = style.minWidth = `${this.colWidth}px`
