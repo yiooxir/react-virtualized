@@ -11,7 +11,7 @@ class Item extends Component<any> {
   render() {
     return (
       <div
-        id={ this.props.name }
+        id={ `item_${this.props.name}` }
         onClick={ () => this.setState({name: Math.random(), height: `${Math.random() * 300 + 30}px`}) }
         className='test-element inner'
         style={ {height: this.state.height} }>
@@ -33,7 +33,7 @@ const generateItem = (i) => {
 }
 
 // console.time('start')
-const items = Array(5).fill('').map((e, i) => generateItem(i))
+const items = Array(20).fill('').map((e, i) => generateItem(i))
 // console.timeEnd('start')
 // console.time('render')
 class App extends Component {
@@ -53,6 +53,7 @@ class App extends Component {
       <div className="App">
         <button onClick={ this.addItem }>add item</button>
         <div className="wrap" id='scroll'>
+          <div>123</div>
           <VirtualList
             virtual={ true }
             baseWidth={ 120 }

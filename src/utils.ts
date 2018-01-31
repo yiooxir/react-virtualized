@@ -43,9 +43,14 @@ function isDef(value: number): boolean {
   return typeof value === 'number' && value >= 0
 }
 
+function getLast<T>(array: Array<T>): T {
+  return array[array.length - 1]
+}
+
 export {
   pick,
   isDef,
+  getLast,
   toIndex,
   toCount,
   sumByKey,
