@@ -7,6 +7,7 @@ import { throttle } from 'throttle-debounce'
 // import { VirtualListNs } from "./interfaces";
 // import { VirtualCol } from "./virtual-column";
 const BATCH_COUNT = 10
+
 /**
  * @class VirtualList
  *
@@ -61,7 +62,7 @@ class VirtualList extends Component<any, any> {
       console.warn('Scroll Box is not detected')
     }
 
-    this.scrollDOMRef.addEventListener('scroll',  throttle(10, this.updateRenderTree))
+    this.scrollDOMRef.addEventListener('scroll', throttle(200, this.updateRenderTree))
     this.children = Array.from(this.props.children) //Array.from((this.props.children as any))
     this.reindex()
     this.updateColParams()
@@ -98,7 +99,7 @@ class VirtualList extends Component<any, any> {
 
   getMetaSlice(nodes: Array<ReactChild>): Array<Cache> {
     const res = []
-    for(let node of nodes) {
+    for (let node of nodes) {
       node.key in this.metaMap && res.push(this.metaMap[node.key])
     }
     return res
@@ -188,7 +189,7 @@ class VirtualList extends Component<any, any> {
     console.count('recalcCacheHeights')
     if (this.prevColWidth !== this.colWidth) {
       const factor = this.colWidth / this.prevColWidth
-        metaMapSlice.forEach(mm => mm.height = mm.height * factor)
+      metaMapSlice.forEach(mm => mm.height = mm.height * factor)
     }
 
     this.recalcMetaOffsets()
@@ -197,7 +198,7 @@ class VirtualList extends Component<any, any> {
   recalcMetaOffsets() {
     console.count('recalcMetaOffsets')
     Array.from(this.indexes.keys()).reduce((res, key) => {
-      const mm =  this.metaMap[key]
+      const mm = this.metaMap[key]
       if (!mm) return res
 
       mm.offsetTop = res[mm.address]
@@ -205,14 +206,12 @@ class VirtualList extends Component<any, any> {
       return res
     }, new Array(this.colCount).fill(0))
 
-    console.log('recalcMetaOffsets', this.metaMap)
     this.updateRenderTree()
   }
 
   updateSizesCb = (sizes, a) => {
-    console.warn('updateSizesCb')
-    for(let key in sizes) {
-      const mm = key in this.metaMap ? this.metaMap[key] : { ...initMetaObject }
+    for (let key in sizes) {
+      const mm = key in this.metaMap ? this.metaMap[key] : {...initMetaObject}
       mm.height = sizes[key]
       this.metaMap[key] = mm
     }
@@ -222,7 +221,7 @@ class VirtualList extends Component<any, any> {
   // todo можно отслеживать виртуальный край по врапперу всех колонок, следовательно оптимизировать процесс пересчетов
   updateRenderTree = () => {
     console.count('updateRenderTree')
-    console.log(this.metaMap)
+
     setTimeout(() => {
       console.count('updateRenderTreeAsync')
       // if (this.unstable) return
@@ -235,7 +234,6 @@ class VirtualList extends Component<any, any> {
       const colCount = this.colCount
       const layoutParams = this.getVLParams()
 
-      console.warn('indeces', this.startIndex, this.stopIndex)
       const slice = this.children.slice(this.startIndex, this.stopIndex)
 
       for (let node of slice) {
@@ -285,8 +283,6 @@ class VirtualList extends Component<any, any> {
         return res
       }, Array.from({length: colCount}, () => []))
 
-      // console.log('topInvisibleIndices', topInvisibleIndices)
-      // console.log('bottomInvisibleIndices', bottomInvisibleIndices)
       this.unsized = unsized
 
       /* Increase slice range if needed */
@@ -338,6 +334,7 @@ class VirtualList extends Component<any, any> {
   }
 
   renderVirtualCol(items, i) {
+    // console.log(i, 'items', items)
     const first = items[0]
     const offset = first ? this.getMeta(first).offsetTop : 0
     const style: any = {
@@ -347,7 +344,7 @@ class VirtualList extends Component<any, any> {
     style.width = style.maxWidth = style.minWidth = `${this.colWidth}px`
 
     return (
-      <div style={style} key={i}>{items}</div>
+      <div style={ style } key={ i }>{ items }</div>
     )
   }
 
@@ -361,7 +358,6 @@ class VirtualList extends Component<any, any> {
     // return (
     //   <div>123</div>
     // )
-    // console.log(123, this.props)
     // console.time('render')
     // const a = this.props.children.slice(0, 5)
 
@@ -371,18 +367,19 @@ class VirtualList extends Component<any, any> {
 
     return (
       [
+
+        <div
+          key='layout'
+          style={ {display: 'flex'} }>
+          { this.renderTree.map((items, i) => {
+            return this.renderVirtualCol(items, i)
+            {/*<div style={style} key={i}>{cols.map(items => items)}</div>*/
+            }
+          }) }
+        </div>,
         <SizeBuffer key='sizer' ref={ el => this.sizerDOMRef = el } onSizes={ this.updateSizesCb }>
           { this.unsized }
-        </SizeBuffer>,
-        <div
-        key='layout'
-        style={ {display: 'flex'} }>
-        { this.renderTree.map((items, i) => {
-          return this.renderVirtualCol(items, i)
-          {/*<div style={style} key={i}>{cols.map(items => items)}</div>*/
-          }
-        }) }
-      </div>
+        </SizeBuffer>
 
       ]
     )
