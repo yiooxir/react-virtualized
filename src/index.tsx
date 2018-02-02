@@ -33,7 +33,7 @@ const generateItem = (i) => {
 }
 
 // console.time('start')
-const items = Array(30).fill('').map((e, i) => generateItem(i))
+const items = Array(5).fill('').map((e, i) => generateItem(i))
 // console.timeEnd('start')
 // console.time('render')
 class App extends Component {

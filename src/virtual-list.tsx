@@ -289,6 +289,7 @@ class VirtualList extends Component<any, any> {
       if (!this.unsized.length) {
 
 
+        // todo выставляем 5 элементов, если один чуть вылазит, то при скроле сразу пропадает
         let needMore = false
 
         switch (layoutParams.direction) {
