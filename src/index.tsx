@@ -29,11 +29,11 @@ let index = 0
 
 const generateItem = (i) => {
   index = i
-  return <Item key={ i.toString() } name={ i } height={ `${Math.random() * 300 + 30}px` }/>
+  return <Item key={ i.toString() } name={ i } height={ `${Math.random() * 150 + 30}px` }/>
 }
 
 // console.time('start')
-const items = Array(5).fill('').map((e, i) => generateItem(i))
+const items = Array(100).fill('').map((e, i) => generateItem(i))
 // console.timeEnd('start')
 // console.time('render')
 class App extends Component {
@@ -60,7 +60,7 @@ class App extends Component {
             maxCount={ 2 }
             minCount={ 1 }
             scrollSelector={ '#scroll' }
-            virtualThreshold={150}
+            virtualThreshold={500}
           >
             { items }
           </VirtualList>
@@ -72,8 +72,3 @@ class App extends Component {
 }
 
 ReactDOM.render(<App/>, document.getElementById('root'));
-
-// Hot Module Replacement
-// if ((module as any).hot) {
-//   (module as any).hot.accept();
-// }

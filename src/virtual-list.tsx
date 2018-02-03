@@ -3,10 +3,11 @@ import { SizeBuffer } from "./virtual-size-buffer";
 import { getLast, isDef, normalizeCount, sliceRange } from "./utils";
 import { BASE_WIDTH, SCROLL_DIR, VIRTUAL_THRESHOLD } from "./const";
 import { throttle } from 'throttle-debounce'
+import { WithSizeNs } from "src/interfaces";
 //import { withSize } from "./virtual-with-size-decorator";
 // import { VirtualListNs } from "./interfaces";
 // import { VirtualCol } from "./virtual-column";
-const BATCH_COUNT = 10
+const BATCH_COUNT = 30
 
 /**
  * @class VirtualList
@@ -29,49 +30,80 @@ const initMetaObject = {
   hash: null
 }
 
+const withSize = (Enhanced): any => {
+  class Wrap extends Component<any, any> {
+    private itv
+
+    state = {
+      // todo вынести в константы
+      stopIndex: 100
+    }
+
+    componentDidMount() {
+      // this.addMore = this.addMore.bind(this)
+    }
+
+    _addMore() {
+
+    }
+
+    // todo ввести константу для буфера
+    // todo отработать срез при 100 не должно быть вызова setState
+    addMore = (index) => {
+      if (this.state.stopIndex - +index < 50) {
+        console.warn('!!!! increase')
+        this.setState({stopIndex: this.state.stopIndex + 100 })
+      }
+    }
+
+    render() {
+      console.warn('increase slice to', this.state.stopIndex)
+      return <Enhanced
+        { ...this.props }
+        hasMore={ (this.props.children.length - 1) >= this.state.stopIndex }
+        addMore={ this.addMore }
+        children={ sliceRange(this.props.children, 0, this.state.stopIndex) }
+      />
+    }
+  }
+
+  return Wrap
+}
+
+@withSize
 class VirtualList extends Component<any, any> {
   private scrollDOMRef: HTMLDivElement
   private sizerDOMRef
+  private listDOMRef
   private children: Array<any> = []
   private metaMap: { [key: string]: Cache } = {}
-  private startIndex = 0
-  private stopIndex = 10
-  // todo выставлять maxIndex при скроле, тоб был всегда актуальный
-  private maxIndex = this.stopIndex
   private colCount
   private colWidth
   private prevColWidth
-  private renderTree = []
-  private unsized = []
-  private stableHash
   private lastScrollPos
   private indexes = new Map()
-  private pending = true
-  private unstable = true
 
-  // constructor(props, context) {
-  //   super(props, context)
-  //   this.updateSizesCb.bind(this)
-  // }
+  state = {
+    unsized: [],
+    tree: []
+  }
 
   componentDidMount() {
-    this.unstable = false
     this.scrollDOMRef = document.querySelector(this.props.scrollSelector)
 
     if (!this.scrollDOMRef) {
       console.warn('Scroll Box is not detected')
     }
 
-    this.scrollDOMRef.addEventListener('scroll', throttle(200, this.updateRenderTree))
-    this.children = Array.from(this.props.children) //Array.from((this.props.children as any))
+    this.scrollDOMRef.addEventListener('scroll', throttle(200, this.rebuildRenderTree))
+    this.children = Array.from(this.props.children)
     this.reindex()
     this.updateColParams()
   }
 
-  // todo компонент не получает свойства, когда внутренний изменяется через стейт
   componentWillReceiveProps(nextProps) {
     console.log('componentWillReceiveProps')
-    this.children = Array.from(this.props.children)
+    this.children = Array.from(nextProps.children)
     this.reindex()
     this.updateColParams()
   }
@@ -109,22 +141,19 @@ class VirtualList extends Component<any, any> {
     const threshold = this.props.virtualThreshold || VIRTUAL_THRESHOLD
     const top = this.scrollDOMRef.scrollTop - threshold
     const bottom = this.scrollDOMRef.scrollTop + this.scrollDOMRef.clientHeight + threshold
-    const direction = this.scrollDOMRef.scrollTop > this.lastScrollPos ? SCROLL_DIR.BOTTOM : SCROLL_DIR.TOP
+    const direction = this.scrollDOMRef.scrollTop >= this.lastScrollPos ? SCROLL_DIR.BOTTOM : SCROLL_DIR.TOP
     this.lastScrollPos = this.scrollDOMRef.scrollTop
 
-    const res = {
+    return {
       offsetTop: this.sizerDOMRef.ref.offsetTop,
       top: top >= 0 ? top : 0,
       bottom: bottom,
       direction
     }
-
-    return res
   }
 
   // todo при старте приложения отрисовывается одна колонка. потом идет пересчет
   updateColParams(): void {
-    this.pending = true
     const clientWidth = this.sizerDOMRef.ref.clientWidth
 
 
@@ -139,16 +168,13 @@ class VirtualList extends Component<any, any> {
     this.prevColWidth = this.prevColWidth === undefined ? width : this.colWidth
     this.colWidth = width
 
-    this.pending = false
-
     if (!Object.keys(this.metaMap).length) {
       this.colCount = count
-      this.updateRenderTree()
+      this.rebuildRenderTree()
       return
     }
 
-    console.warn('updateColParams start slicing')
-    const mmSlice = this.getMetaSlice(sliceRange(this.children, 0, this.maxIndex))
+    const mmSlice = this.getMetaSlice(this.props.children)
 
     if (this.colCount != count) {
       this.colCount = count
@@ -160,7 +186,7 @@ class VirtualList extends Component<any, any> {
       this.recalcMetaHeights(mmSlice)
     }
 
-    this.updateRenderTree()
+    this.rebuildRenderTree()
   }
 
   // todo если первый из списка не имеет позиции то встает в 0
@@ -192,152 +218,72 @@ class VirtualList extends Component<any, any> {
       metaMapSlice.forEach(mm => mm.height = mm.height * factor)
     }
 
-    this.recalcMetaOffsets()
+    this.rebuildRenderTree()
   }
 
-  recalcMetaOffsets() {
-    console.count('recalcMetaOffsets')
-    Array.from(this.indexes.keys()).reduce((res, key) => {
-      const mm = this.metaMap[key]
-      if (!mm) return res
-
-      mm.offsetTop = res[mm.address]
-      res[mm.address] += mm.height
-      return res
-    }, new Array(this.colCount).fill(0))
-
-    this.updateRenderTree()
+  getNodeByKey(key) {
+    return this.children[this.indexes.get(key)]
   }
 
-  updateSizesCb = (sizes, a) => {
-    for (let key in sizes) {
+  mapToNodes(keys) {
+    return keys.map(key => this.getNodeByKey(key))
+  }
+
+
+  rebuildRenderTree = () => {
+    console.count('rebuildRenderTree')
+    setTimeout(() => {
+      const params = this.getVLParams()
+      const tree = Array.from({length: this.colCount}, () => [])
+      const unsized = []
+      let lastKey = null
+      // let max = 0, min = null
+
+      Array.from(this.indexes.keys()).reduce((res, key) => {
+        const mm = this.metaMap[key]
+
+        if (!mm || !mm.height) {
+          unsized.push(key)
+          return res
+        }
+
+        mm.offsetTop = res[mm.address]
+        res[mm.address] += mm.height
+
+        if (mm.offsetTop + mm.height > params.top && mm.offsetTop < params.bottom) {
+
+
+          tree[mm.address].push(key)
+          lastKey = key
+        }
+
+        return res
+      }, new Array(this.colCount).fill(0))
+
+      this.props.addMore(this.indexes.get(lastKey))
+
+      this.setState({
+        unsized,
+        tree
+      })
+    })
+  }
+
+  recalcMetaParams = (sizes, a) => {
+    const res = Object.keys(sizes).map(key => {
       const mm = key in this.metaMap ? this.metaMap[key] : {...initMetaObject}
       mm.height = sizes[key]
       this.metaMap[key] = mm
-    }
-    this.recalcMetaAddresses(this.getMetaSlice(sliceRange(this.children, this.startIndex, this.stopIndex)))
-  }
-
-  // todo можно отслеживать виртуальный край по врапперу всех колонок, следовательно оптимизировать процесс пересчетов
-  updateRenderTree = () => {
-    console.count('updateRenderTree')
-
-    setTimeout(() => {
-      console.count('updateRenderTreeAsync')
-      // if (this.unstable) return
-
-      const unaddressed = []
-      const unsized = []
-      const stable = []
-      const topInvisibleIndices = []
-      const bottomInvisibleIndices = []
-      const colCount = this.colCount
-      const layoutParams = this.getVLParams()
-
-      const slice = this.children.slice(this.startIndex, this.stopIndex)
-
-      for (let node of slice) {
-        const k = node.key
-
-        if (!(k in this.metaMap)) {
-          unsized.push(node);
-          continue;
-        }
-
-        const ch = this.metaMap[k]
-
-        if (!isDef(ch.height)) {
-          unsized.push(node);
-          continue;
-        }
-
-        if (!isDef(ch.address)) {
-          unaddressed.push(node);
-          continue;
-        }
-        // if (ch.hash !== this.stableHash) {
-        //   unsized.push(node)
-        // }
-
-        stable.push(node)
-      }
-
-      // unaddressed.length && this.recalcMetaAddresses(this.getMetaSlice(unaddressed))
-
-      // Reduce Indices Range
-      this.renderTree = stable.reduce((res, node) => {
-        const mm = this.getMeta(node)
-        // Add index for removing list if it is invisible
-
-        if ((mm.offsetTop + mm.height) < layoutParams.top) {
-          topInvisibleIndices.push(this.getIndex(node.key));
-          return res;
-        }
-
-        if ((mm.offsetTop > layoutParams.bottom)) {
-          bottomInvisibleIndices.push(this.getIndex(node.key));
-          return res;
-        }
-
-        res[mm.address].push(node)
-        return res
-      }, Array.from({length: colCount}, () => []))
-
-      this.unsized = unsized
-
-      /* Increase slice range if needed */
-      if (!this.unsized.length) {
-
-
-        // todo выставляем 5 элементов, если один чуть вылазит, то при скроле сразу пропадает
-        let needMore = false
-
-        switch (layoutParams.direction) {
-          case SCROLL_DIR.TOP:
-            if (!this.isFirstElement(this.children[this.startIndex])) {
-              this.renderTree.forEach((col) => {
-                if (!col[0]) return
-                const mm = this.getMeta(col[0])
-                if (mm.offsetTop > layoutParams.top) needMore = true
-              })
-
-              if (needMore) {
-                this.reduceStartIndex()
-                this.updateRenderTree()
-              }
-            }
-            break;
-
-          case SCROLL_DIR.BOTTOM:
-            if (!this.isLastElement(this.children[this.stopIndex])) {
-              this.renderTree.forEach((col) => {
-                const last = getLast<ReactChild>(col)
-                if (!last) return
-                const mm = this.getMeta(last)
-                if (mm.offsetTop + mm.height < layoutParams.bottom) needMore = true
-              })
-
-              if (needMore) {
-                this.increaseStopIndex()
-                this.updateRenderTree()
-              }
-            }
-            break;
-        }
-      }
-
-      /* Reduce slice range if needed */
-
-      // todo возможно нужно сделать через троттл
-      this.forceUpdate()
+      return mm
     })
 
+    this.recalcMetaAddresses(res)
   }
 
   renderVirtualCol(items, i) {
-    // console.log(i, 'items', items)
+    const nodes = this.mapToNodes(items)
     const first = items[0]
-    const offset = first ? this.getMeta(first).offsetTop : 0
+    const offset = first ? this.metaMap[first].offsetTop : 0
     const style: any = {
       transform: `translate(0, ${offset}px)`,
       alignSelf: 'flex-start'
@@ -345,64 +291,27 @@ class VirtualList extends Component<any, any> {
     style.width = style.maxWidth = style.minWidth = `${this.colWidth}px`
 
     return (
-      <div style={ style } key={ i }>{ items }</div>
+      <div style={ style } key={ i }>{ nodes }</div>
     )
   }
 
   render() {
-    // const separated = this.separated()
-    const style: any = {}
-    style.width = style.maxWidth = style.minWidth = `${this.colWidth}px`
-
-    // style.overflow = 'hidden'
-    //
-    // return (
-    //   <div>123</div>
-    // )
-    // console.time('render')
-    // const a = this.props.children.slice(0, 5)
-
-    // if (this.pending) return (
-    //   <SizeBuffer key='sizer' ref={ el => this.sizerDOMRef = el } />
-    // )
-
     return (
       [
-
         <div
           key='layout'
+          ref={ el => this.listDOMRef = el }
           style={ {display: 'flex'} }>
-          { this.renderTree.map((items, i) => {
+          { this.state.tree.map((items, i) => {
             return this.renderVirtualCol(items, i)
-            {/*<div style={style} key={i}>{cols.map(items => items)}</div>*/
-            }
           }) }
         </div>,
-        <SizeBuffer key='sizer' ref={ el => this.sizerDOMRef = el } onSizes={ this.updateSizesCb }>
-          { this.unsized }
+        <SizeBuffer key='sizer' ref={ el => this.sizerDOMRef = el } onSizes={ this.recalcMetaParams }>
+          { this.mapToNodes(this.state.unsized) }
         </SizeBuffer>
 
       ]
     )
-  }
-
-  private isFirstElement(node): boolean {
-    return this.children[0] === node
-  }
-
-  private reduceStartIndex() {
-    const newIndex = this.startIndex - BATCH_COUNT
-    return isDef(newIndex) ? newIndex : 0
-  }
-
-  private isLastElement(node): boolean {
-    return getLast(this.children) === node
-  }
-
-  private increaseStopIndex(): void {
-    const max = this.children.length - 1
-    const res = this.stopIndex + BATCH_COUNT
-    this.stopIndex = res > max ? max : res
   }
 }
 

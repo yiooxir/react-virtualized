@@ -56,7 +56,7 @@ describe('recalcMetaHeights', () => {
     prevColWidth: 80
   })
   before(() => {
-    sb.stub(inst, 'recalcMetaOffsets')
+    sb.stub(inst, 'rebuildRenderTree')
   })
   after(() => {
     sb.restore()
@@ -76,7 +76,7 @@ describe('recalcMetaHeights', () => {
   })
 })
 
-describe('recalcMetaOffsets', () => {
+describe('rebuildRenderTree', () => {
   const sb = sandbox.create()
   const inst = new VirtualList({})
   Object.assign(inst, {
@@ -98,7 +98,7 @@ describe('recalcMetaOffsets', () => {
       3: {height: 15, address: 1, offsetTop: 10},
       4: {height: 20, address: 0, offsetTop: 10},
     }
-    inst.recalcMetaOffsets()
+    inst.rebuildRenderTree()
     expect(inst.metaMap).to.deep.eq(
       {
         '1': {height: 5, address: 0, offsetTop: 0},
@@ -109,7 +109,7 @@ describe('recalcMetaOffsets', () => {
   });
 })
 
-describe('updateSizesCb', function () {
+describe('recalcMetaParams', function () {
   const sb = sandbox.create()
   const inst = new VirtualList({})
   before(() => {
@@ -120,7 +120,7 @@ describe('updateSizesCb', function () {
   })
   it('should set correct heights at initial phase', function () {
     inst.metaMap = {}
-    inst.updateSizesCb({1: 10, 2: 20})
+    inst.recalcMetaParams({1: 10, 2: 20})
     console.log(inst.metaMap)
   });
 });
