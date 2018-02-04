@@ -16,13 +16,15 @@ interface Cache {
   address: number
   offsetTop: number
   hash: string
+  key: string
 }
 
 const initMetaObject = {
   height: null,
   address: null,
   offsetTop: null,
-  hash: null
+  hash: null,
+  key: null
 }
 
 const withSize = (Enhanced): any => {
@@ -108,6 +110,7 @@ class VirtualList extends Component<any, any> {
   }
 
   reindex() {
+    this.indexes.clear()
     this.children.forEach((node, i) => this.indexes.set(node.key, i))
   }
 
@@ -185,6 +188,7 @@ class VirtualList extends Component<any, any> {
   }
 
   // todo если первый из списка не имеет позиции то встает в 0
+  // todo при item.edit меняется адресация уже адресных элементов
   recalcMetaAddresses(metaMapSlice, drop = false) {
     console.count('recalcCacheAddresses with drop', drop)
     // debugger
@@ -195,11 +199,15 @@ class VirtualList extends Component<any, any> {
     }
 
     metaMapSlice.reduce((res: Array<number>, mm) => {
-      if (!drop && isDef(mm.address)) return res
+      if (!drop && isDef(mm.address)) {
+        res[mm.address] += mm.height
+        return res
+      }
 
-      const minIndex = res.indexOf(Math.min(...res)) || 0
-      res[minIndex] += mm.height
-      mm.address = minIndex
+      const index = res.indexOf(Math.min(...res)) || 0
+
+      res[index] += mm.height
+      mm.address = index
       return res
     }, new Array(this.colCount).fill(0))
 
@@ -269,6 +277,7 @@ class VirtualList extends Component<any, any> {
     const res = Object.keys(sizes).map(key => {
       const mm = key in this.metaMap ? this.metaMap[key] : {...initMetaObject}
       mm.height = sizes[key]
+      mm.key = key
       this.metaMap[key] = mm
       return mm
     })
