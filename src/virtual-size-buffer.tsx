@@ -49,7 +49,7 @@ class SizeBuffer extends Component<any> {
   render() {
     return (
       <div
-        style={ {width: '100%', display: 'node'} }
+        style={ {width: '100%', height: '0', visibility: 'hidden'} }
         ref={ el => {
           this.ref = el;
         } }

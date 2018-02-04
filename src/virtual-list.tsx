@@ -1,13 +1,8 @@
 import React, { Component, ReactChild } from "react";
 import { SizeBuffer } from "./virtual-size-buffer";
-import { getLast, isDef, normalizeCount, sliceRange } from "./utils";
+import { isDef, normalizeCount, sliceRange } from "./utils";
 import { BASE_WIDTH, SCROLL_DIR, VIRTUAL_THRESHOLD } from "./const";
 import { throttle } from 'throttle-debounce'
-import { WithSizeNs } from "src/interfaces";
-//import { withSize } from "./virtual-with-size-decorator";
-// import { VirtualListNs } from "./interfaces";
-// import { VirtualCol } from "./virtual-column";
-const BATCH_COUNT = 30
 
 /**
  * @class VirtualList
@@ -230,6 +225,7 @@ class VirtualList extends Component<any, any> {
   }
 
 
+  // todo реализовать shadow resize когда не надо вызывать ререндер если height не изменился.
   rebuildRenderTree = () => {
     console.count('rebuildRenderTree')
     setTimeout(() => {
