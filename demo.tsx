@@ -24,7 +24,7 @@ class List {
 
   @action
   init() {
-    Array.from({ length: 4 }, () => this.appendOne())
+    Array.from({ length: 40 }, () => this.appendOne())
   }
 
   @action
@@ -41,7 +41,13 @@ class List {
 
   @action editItem(name) {
     const item = this.getItemByName(name)
-    Object.assign(item, List.generateItemParams(), {id: item.id})
+    Object.assign(
+      item,
+      List.generateItemParams(),
+      {
+        id: item.id,
+        name: item.name
+      })
   }
 
   @action
@@ -68,17 +74,17 @@ class Item extends Component<any> {
   }
 
   render() {
-    const { height, color, name } = this.props
+    const { height, color, name, id } = this.props
 
     const style = {
-      height: `${this.state.height}px`,
+      height: `${height}px`,
       backgroundColor: color,
       color: 'white'
     }
 
     return (
       <div
-        id={ `item_${this.props.name}` }
+        id={ id }
         onClick={ () => list.editItem(name) }
         className='test-element inner'
         style={ style }>
@@ -106,9 +112,9 @@ class App extends Component {
             maxCount={ 2 }
             minCount={ 1 }
             scrollSelector={ '#scroll' }
-            virtualThreshold={ 200 }
+            virtualThreshold={ 500 }
           >
-            { list.items.map(e => (<Item {...e} key={e.name} />)) }
+            { list.items.map(e => (<Item {...e} key={e.id} />)) }
           </VirtualList>
         </div>
       </div>

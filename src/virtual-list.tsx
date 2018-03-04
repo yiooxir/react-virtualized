@@ -72,6 +72,7 @@ class VirtualList extends Component<any, any> {
   private scrollDOMRef: HTMLDivElement
   private sizerDOMRef
   private listDOMRef
+  private onScrollCb
   private children: Array<any> = []
   private metaMap: { [key: string]: Cache } = {}
   private colCount
@@ -92,7 +93,8 @@ class VirtualList extends Component<any, any> {
       console.warn('Scroll Box is not detected')
     }
 
-    this.scrollDOMRef.addEventListener('scroll', throttle(200, this.rebuildRenderTree))
+    this.onScrollCb = throttle(200, this.rebuildRenderTree)
+    this.scrollDOMRef.addEventListener('scroll', this.onScrollCb)
     this.children = Array.from(this.props.children)
     this.reindex()
     this.updateColParams()
@@ -106,9 +108,12 @@ class VirtualList extends Component<any, any> {
   }
 
   componentWillUnmount() {
-
+    this.scrollDOMRef.removeEventListener('scroll', this.onScrollCb)
   }
 
+  /**
+   * Map node.key with its array index
+   */
   reindex() {
     this.indexes.clear()
     this.children.forEach((node, i) => this.indexes.set(node.key, i))
@@ -123,10 +128,20 @@ class VirtualList extends Component<any, any> {
     return this.indexes.get(key)
   }
 
+  /**
+   * Return Meta params for node
+   * @param {React.ReactChild} node
+   * @returns {Cache}
+   */
   getMeta(node: ReactChild): Cache {
     return this.metaMap[node.key]
   }
 
+  /**
+   * Return Meta Array Slice by nodes
+   * @param {Array<React.ReactChild>} nodes
+   * @returns {Array<Cache>}
+   */
   getMetaSlice(nodes: Array<ReactChild>): Array<Cache> {
     const res = []
     for (let node of nodes) {
@@ -135,6 +150,13 @@ class VirtualList extends Component<any, any> {
     return res
   }
 
+  /**
+   * Returns Params Of the Virtual List
+   * @offsetTop {number} virtual list offset top from a parent node
+   * @top
+   * @bottom
+   * @direction - VL scroll direction
+   */
   getVLParams = () => {
     const threshold = this.props.virtualThreshold || VIRTUAL_THRESHOLD
     const top = this.scrollDOMRef.scrollTop - threshold
@@ -187,6 +209,12 @@ class VirtualList extends Component<any, any> {
     this.rebuildRenderTree()
   }
 
+  /**
+   * Populate meta items into the columns.
+   * Keep position of item if @arg drop = false and item already has position
+   * @param metaMapSlice
+   * @param {boolean} drop
+   */
   // todo если первый из списка не имеет позиции то встает в 0
   // todo при item.edit меняется адресация уже адресных элементов
   recalcMetaAddresses(metaMapSlice, drop = false) {
@@ -224,10 +252,19 @@ class VirtualList extends Component<any, any> {
     this.rebuildRenderTree()
   }
 
+  /**
+   * Return node by key
+   * @param key
+   * @returns {any}
+   */
   getNodeByKey(key) {
     return this.children[this.indexes.get(key)]
   }
 
+  /**
+   * Return array of nodes by the list of keys
+   * @param keys
+   */
   mapToNodes(keys) {
     return keys.map(key => this.getNodeByKey(key))
   }
