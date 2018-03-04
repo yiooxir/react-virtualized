@@ -8,6 +8,7 @@ describe('getMetaSlice', () => {
   inst.metaMap = {1: {height: 1}, 2: {height: 2}, 3: {height: 3}}
 
   it('Should return correct slice', () => {
+    console.log(inst)
     expect(inst.getMetaSlice([{key: 1}, {key: 3}])).to.deep.equal([{height: 1}, {height: 3}])
   })
 

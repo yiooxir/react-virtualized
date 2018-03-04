@@ -161,9 +161,11 @@ class VirtualList extends Component<any, any> {
     const threshold = this.props.virtualThreshold || VIRTUAL_THRESHOLD
     const top = this.scrollDOMRef.scrollTop - threshold
     const bottom = this.scrollDOMRef.scrollTop + this.scrollDOMRef.clientHeight + threshold
+    const lBottom = this.scrollDOMRef.scrollTop + this.scrollDOMRef.clientHeight + 200
     const direction = this.scrollDOMRef.scrollTop >= this.lastScrollPos ? SCROLL_DIR.BOTTOM : SCROLL_DIR.TOP
     this.lastScrollPos = this.scrollDOMRef.scrollTop
 
+    console.log(11, this.listDOMRef, this.scrollDOMRef.scrollTop, lBottom, this.listDOMRef.clientHeight)
     return {
       offsetTop: this.sizerDOMRef.ref.offsetTop,
       top: top >= 0 ? top : 0,
@@ -275,6 +277,11 @@ class VirtualList extends Component<any, any> {
     console.count('rebuildRenderTree')
     setTimeout(() => {
       const params = this.getVLParams()
+
+      if(this.props.hasMore && this.props.loadMore) {
+
+      }
+
       const tree = Array.from({length: this.colCount}, () => [])
       const unsized = []
       let lastKey = null

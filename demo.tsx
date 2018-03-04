@@ -113,6 +113,8 @@ class App extends Component {
             minCount={ 1 }
             scrollSelector={ '#scroll' }
             virtualThreshold={ 500 }
+            hasMore={true}
+            loadMore={() => console.log('load more')}
           >
             { list.items.map(e => (<Item {...e} key={e.id} />)) }
           </VirtualList>

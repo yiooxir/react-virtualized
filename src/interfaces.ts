@@ -2,7 +2,7 @@ import React from 'react'
 
 type Height = number
 type Width = number
-export type Sizes = {[key: string]: Height}
+// export type Sizes = {[key: string]: Height}
 
 export namespace SizeBufferNs {
   export interface Props {
